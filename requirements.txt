@@ -1,0 +1,6 @@
+setuptools
+matplotlib
+seaborn
+xarray
+scikit-learn
+gpy
