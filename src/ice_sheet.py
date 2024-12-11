@@ -1,36 +1,38 @@
-from cgi import test
-from math import sqrt
-import pde
-from pde import PDE, CartesianGrid, MemoryStorage, ScalarField, plot_kymograph
+"""Module for running ice sheet simulations and processing their results."""
+
 import numpy as np
-from pde import PDE, FieldCollection, PlotTracker, ScalarField, UnitGrid
-from pde import DiffusionPDE, ScalarField, UnitGrid
-from emukit.core.acquisition.acquisition_per_cost import acquisition_per_expected_cost
-from tqdm import tqdm
-import pandas as pd
-import pathlib
-from typing import Union
 import pandas as pd
 import xarray as xr
-import plotly.graph_objects as go
-from mfed.plot import plot
-from IPython.display import Video
+from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import shuffle
+from typing import Tuple
 
+DATASET_FOLDER = Path("./../assets/ice_sheet_simulation/")
 
-class ice_sheet_runner:
-    def __init__(self, timestamp=199) -> None:
+class IceSheetRunner:
+    """Runner class for ice sheet simulations with varying resolutions."""
+
+    def __init__(self, timestamp: int = 150) -> None:
+        """Initialize the ice sheet runner.
+
+        Args:
+            timestamp: Time point to analyze in the simulation data (default: 150)
+        """
         self.timestamp = timestamp
+        self.X_clf: StandardScaler = None
         self.load_data(timestamp)
 
-    def load_data(self, timestamp):
+    def load_data(self, timestamp: int) -> None:
+        """Load ice sheet simulation data from NetCDF files.
+
+        Args:
+            timestamp: Time point to load from the simulation data
+        """
         input_data = []
         for fidelity in [2, 3, 4, 5, 6, 8]:
-            datasets_folder = "/Users/pierthodo/Documents/Research/Experiments/multi_fidelity_experimental_design/assets/WAVI-WAIS-setups/ensembles/multi_fidelity_paper_2023/"
-            file = f"ensemble_{fidelity}km_vary_gamma.nc"
-            datasets = pathlib.Path(datasets_folder)
-            dataset = xr.open_dataset(datasets / file)
+            file = f"{fidelity}km.nc"
+            dataset = xr.open_dataset(DATASET_FOLDER / file)
             input_data.append(
                 pd.DataFrame(
                     {
@@ -45,9 +47,18 @@ class ice_sheet_runner:
         self.data = pd.concat(input_data).reset_index().dropna()
         self.X, self.Y = self.prep_data(self.data)
 
-    def prep_data(self, data, melt_average=0, sub=-1):
+    def prep_data(self, data: pd.DataFrame, melt_average: float = 0, sub: int = -1) -> Tuple[np.ndarray, np.ndarray]:
+        """Prepare data for model training by scaling and shuffling.
+
+        Args:
+            data: Input DataFrame containing simulation results
+            melt_average: Average melt value (default: 0)
+            sub: Number of samples to subsample (-1 for all) (default: -1)
+
+        Returns:
+            Tuple of (X, Y) arrays containing processed features and targets
+        """
         tmp = data
-        # Y = StandardScaler().fit_transform(np.array(tmp["SLC"]).reshape((-1, 1)))
         Y = np.array(tmp["SLC"]).reshape((-1, 1))
         X = np.array(tmp[["melt_average", "resolution"]])
         X, Y = shuffle(X, Y)
@@ -63,19 +74,32 @@ class ice_sheet_runner:
         self.X_clf = StandardScaler()
         self.X_clf.fit(X)
         X = self.X_clf.transform(X)
-        # jitter = np.random.normal(0, 0.0001, size=X.shape)
-        # jitter[:, 0] = 0
-        # X += jitter
-        # X[:, 1] = X[:, 1] * 0.1
         return X, Y
 
-    def run(self, data):
+    def run(self, data: np.ndarray) -> np.ndarray:
+        """Run the ice sheet simulation for given input data.
+
+        Args:
+            data: Input array containing simulation parameters
+
+        Returns:
+            Array of simulation results
+        """
         y_return = []
         for i in range(data.shape[0]):
-            distance = np.round(np.sum(np.abs(self.X - data[i, :]), axis=1), decimals=5)
+            sub_X = np.array([n for n in self.X if n[1] == data[i,1]])
+            distance = np.round(np.sum(np.abs(sub_X - data[i, :]), axis=1), decimals=5)
             idx = np.random.choice(np.where(distance == distance.min())[0])
             y_return.append(self.Y[idx])
         return np.array(y_return)
 
-    def __call__(self, X):
+    def __call__(self, X: np.ndarray) -> np.ndarray:
+        """Convenience method to run simulations.
+
+        Args:
+            X: Input array containing simulation parameters
+
+        Returns:
+            Array of simulation results
+        """
         return self.run(X)
