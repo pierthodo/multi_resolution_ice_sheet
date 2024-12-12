@@ -4,3 +4,11 @@ seaborn
 xarray
 scikit-learn
 gpy
+tqdm
+pathos
+py-pde
+emukit
+ipykernel
+numpy
+pandas
+tqdm

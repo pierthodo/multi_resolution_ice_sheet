@@ -224,3 +224,21 @@ def _create_dataframe(
             "years": timestamp,
         }
     )
+
+
+def filter_nan(x,y=None):
+    if y is not None:
+        valid_X = ~np.isnan(x).any(axis=1)
+        valid_Y = ~np.isnan(y).flatten()
+        valid_indices = valid_X & valid_Y
+
+        # Remove the rows with NaN from both X and Y
+        X_cleaned = x[valid_indices]
+        Y_cleaned = x[valid_indices]
+        return X_cleaned, Y_cleaned
+    else:
+        valid_X = ~np.isnan(x).any(axis=1)
+
+        # Remove the rows with NaN from both X and Y
+        X_cleaned = x[valid_X]
+        return X_cleaned

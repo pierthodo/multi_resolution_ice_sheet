@@ -11,3 +11,6 @@ __pycache__/
 
 build
 dist
+
+archive
+notebook/.ipynb_checkpoints
