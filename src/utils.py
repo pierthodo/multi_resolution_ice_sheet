@@ -68,7 +68,6 @@ def predict_and_plot_SLC(
 
     # Prepare data for GP
     X, Y, X_m = prep_data(data_sub, X_m=X_m)
-
     # Initialize and fit GP model
     kernel = GPy.kern.RBF(input_dim=1, ARD=True, lengthscale=[1], variance=1)
     model_gpy = GPRegression(X, Y, kernel=kernel, normalizer=True, noise_var=1)
@@ -97,7 +96,7 @@ def _plot_slc_predictions(
     model.plot(title=f"{resolution} km")
     plt.xticks(fontsize=FONT_SIZES["ticks"])
     plt.yticks(fontsize=FONT_SIZES["ticks"])
-    plt.xlabel("Melt average "+ r'$ma^{-1}$', fontsize=FONT_SIZES["label"])
+    plt.xlabel("Melt average " + r"$ma^{-1}$", fontsize=FONT_SIZES["label"])
     plt.ylabel("SLC (mm)", fontsize=FONT_SIZES["label"])
     plt.title(f"{resolution}km", fontsize=FONT_SIZES["label"])
     plt.ylim(0, max_val_un)
@@ -111,9 +110,7 @@ def _plot_slc_predictions(
     # Handle legend based on resolution
     if resolution == 8:
         plt.legend(
-            bbox_to_anchor=(1.05, 1),
-            loc="upper left",
-            fontsize=FONT_SIZES["legend"]
+            bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=FONT_SIZES["legend"]
         )
         plt.gcf().set_size_inches(plt.gcf().get_size_inches() * [1.5, 1])
     else:
@@ -158,7 +155,7 @@ def prep_data(
     # Scale features
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
-    
+
     # Transform X_m if provided
     if X_m is not None:
         X_m = scaler.transform(X_m)
@@ -192,7 +189,7 @@ def load_data(
         # Load dataset
         file_path = pathlib.Path(datasets_folder) / f"{fidelity}km.nc"
         dataset = xr.open_dataset(file_path)
-        
+
         # Handle timestamp range or single timestamp
         if isinstance(timestamp, list):
             start, end = timestamp
@@ -204,7 +201,9 @@ def load_data(
     return pd.concat(input_data).reset_index().dropna()
 
 
-def _create_dataframe(dataset: xr.Dataset, fidelity: int, timestamp: int) -> pd.DataFrame:
+def _create_dataframe(
+    dataset: xr.Dataset, fidelity: int, timestamp: int
+) -> pd.DataFrame:
     """Helper function to create a DataFrame for a specific dataset and timestamp.
 
     Args:
@@ -215,11 +214,13 @@ def _create_dataframe(dataset: xr.Dataset, fidelity: int, timestamp: int) -> pd.
     Returns:
         DataFrame with extracted data for the given timestamp
     """
-    return pd.DataFrame({
-        "melt_exp": dataset["Inputs"][2],
-        "melt_average": dataset["Inputs"][3],
-        "melt_partial": dataset["Inputs"][0],
-        "SLC": np.array(dataset["SLC"])[timestamp, :].squeeze(),
-        "resolution": [fidelity] * dataset["Inputs"].shape[1],
-        "years": timestamp,
-    })
+    return pd.DataFrame(
+        {
+            "melt_exp": dataset["Inputs"][2],
+            "melt_average": dataset["Inputs"][3],
+            "melt_partial": dataset["Inputs"][0],
+            "SLC": np.array(dataset["SLC"])[timestamp, :].squeeze(),
+            "resolution": [fidelity] * dataset["Inputs"].shape[1],
+            "years": timestamp,
+        }
+    )
